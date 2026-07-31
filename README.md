@@ -1,4 +1,4 @@
-# Arraiá Macabro Backend
+# Projeto X Backend
 
 Backend separado do frontend principal. Este projeto concentra as rotas de API, autenticação, Prisma e seed do banco.
 
