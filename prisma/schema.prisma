@@ -17,13 +17,15 @@ model Admin {
 }
 
 model Guest {
-  id        String         @id @default(cuid())
-  name      String
-  code      String         @unique
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  response  GuestResponse?
-  accesses  GuestAccess[]
+  id                   String         @id @default(cuid())
+  name                 String
+  code                 String         @unique
+  confirmationStartsAt DateTime?
+  confirmationEndsAt   DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  response             GuestResponse?
+  accesses             GuestAccess[]
 }
 
 model GuestResponse {

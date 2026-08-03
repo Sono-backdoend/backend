@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomBytes } from "crypto";
+import { parseConfirmationWindow } from "@/lib/confirmation-window";
 
 // Gera um código único alfanumérico de 8 caracteres
 async function generateUniqueCode(): Promise<string> {
@@ -25,6 +26,8 @@ export async function GET() {
       code: true,
       createdAt: true,
       updatedAt: true,
+      confirmationStartsAt: true,
+      confirmationEndsAt: true,
       response: {
         select: {
           confirmed: true,
@@ -46,6 +49,8 @@ export async function GET() {
     code: g.code,
     createdAt: g.createdAt,
     updatedAt: g.updatedAt,
+    confirmationStartsAt: g.confirmationStartsAt,
+    confirmationEndsAt: g.confirmationEndsAt,
     accessCount: g._count.accesses,
     response: g.response ?? null,
   }));
@@ -56,7 +61,11 @@ export async function GET() {
 // POST /api/admin/guests — cria um novo convidado e gera código único
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { name } = body as { name?: string };
+  const { name, confirmationStartsAt, confirmationEndsAt } = body as {
+    name?: string;
+    confirmationStartsAt?: string | null;
+    confirmationEndsAt?: string | null;
+  };
 
   if (!name?.trim()) {
     return NextResponse.json(
@@ -66,14 +75,24 @@ export async function POST(req: NextRequest) {
   }
 
   const code = await generateUniqueCode();
+  const parsedWindow = parseConfirmationWindow(
+    confirmationStartsAt,
+    confirmationEndsAt
+  );
+
+  if ("error" in parsedWindow) {
+    return NextResponse.json({ error: parsedWindow.error }, { status: 400 });
+  }
 
   const guest = await prisma.guest.create({
-    data: { name: name.trim(), code },
+    data: { name: name.trim(), code, ...parsedWindow.data },
     select: {
       id: true,
       name: true,
       code: true,
       createdAt: true,
+      confirmationStartsAt: true,
+      confirmationEndsAt: true,
     },
   });
 

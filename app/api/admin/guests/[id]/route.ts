@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { parseConfirmationWindow } from "@/lib/confirmation-window";
 
 // GET /api/admin/guests/:id — detalhe de um convidado com todos os acessos
 export async function GET(
@@ -16,6 +17,8 @@ export async function GET(
       code: true,
       createdAt: true,
       updatedAt: true,
+      confirmationStartsAt: true,
+      confirmationEndsAt: true,
       response: {
         select: {
           confirmed: true,
@@ -59,13 +62,71 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const body = await req.json();
-  const { name } = body as { name?: string };
+  const { name, confirmationStartsAt, confirmationEndsAt } = body as {
+    name?: string;
+    confirmationStartsAt?: string | null;
+    confirmationEndsAt?: string | null;
+  };
 
-  if (!name?.trim()) {
+  const hasNameField = Object.prototype.hasOwnProperty.call(body, "name");
+  const hasStartsAtField = Object.prototype.hasOwnProperty.call(
+    body,
+    "confirmationStartsAt"
+  );
+  const hasEndsAtField = Object.prototype.hasOwnProperty.call(
+    body,
+    "confirmationEndsAt"
+  );
+
+  if (!hasNameField && !hasStartsAtField && !hasEndsAtField) {
+    return NextResponse.json(
+      {
+        error:
+          "Envie ao menos um campo para atualizar: 'name', 'confirmationStartsAt' ou 'confirmationEndsAt'",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (hasNameField && !name?.trim()) {
     return NextResponse.json(
       { error: "O campo 'name' é obrigatório" },
       { status: 400 }
     );
+  }
+
+  if (hasStartsAtField !== hasEndsAtField) {
+    return NextResponse.json(
+      {
+        error:
+          "Os campos 'confirmationStartsAt' e 'confirmationEndsAt' devem ser enviados juntos",
+      },
+      { status: 400 }
+    );
+  }
+
+  const updateData: {
+    name?: string;
+    confirmationStartsAt?: Date | null;
+    confirmationEndsAt?: Date | null;
+  } = {};
+
+  if (hasNameField && name?.trim()) {
+    updateData.name = name.trim();
+  }
+
+  if (hasStartsAtField && hasEndsAtField) {
+    const parsedWindow = parseConfirmationWindow(
+      confirmationStartsAt,
+      confirmationEndsAt
+    );
+
+    if ("error" in parsedWindow) {
+      return NextResponse.json({ error: parsedWindow.error }, { status: 400 });
+    }
+
+    updateData.confirmationStartsAt = parsedWindow.data.confirmationStartsAt;
+    updateData.confirmationEndsAt = parsedWindow.data.confirmationEndsAt;
   }
 
   const exists = await prisma.guest.findUnique({ where: { id } });
@@ -78,12 +139,14 @@ export async function PATCH(
 
   const guest = await prisma.guest.update({
     where: { id },
-    data: { name: name.trim() },
+    data: updateData,
     select: {
       id: true,
       name: true,
       code: true,
       updatedAt: true,
+      confirmationStartsAt: true,
+      confirmationEndsAt: true,
     },
   });
 

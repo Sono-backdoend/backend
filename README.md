@@ -51,3 +51,16 @@ npm run db:studio
 ```
 
 O backend sobe por padrão em `http://localhost:3001`.
+
+## Janela de confirmação de convite
+
+Ao criar/atualizar convidados, você pode definir uma janela para permitir confirmação apenas em um intervalo específico:
+
+- `confirmationStartsAt`: início da janela (ISO-8601)
+- `confirmationEndsAt`: fim da janela (ISO-8601)
+
+Regras:
+
+- Os dois campos devem ser enviados juntos.
+- `confirmationStartsAt` deve ser anterior a `confirmationEndsAt`.
+- Se ambos forem `null`, o convite fica sem limite de janela.
