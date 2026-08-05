@@ -4,6 +4,8 @@ import {
   getConfirmationWindowMessage,
   isWithinConfirmationWindow,
 } from "@/lib/confirmation-window";
+import { getClientIp } from "@/lib/get-client-ip";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 // POST /api/invite/respond
 // Body: {
@@ -33,6 +35,12 @@ export async function POST(req: NextRequest) {
   if (!code) {
     return NextResponse.json({ error: "Código obrigatório" }, { status: 400 });
   }
+
+  // Verificado antes de consultar o banco — mesmo raciocínio do
+  // /api/invite/validate: código com só 32 bits de espaço de busca.
+  const ip = getClientIp(req);
+  const limit = checkRateLimit(`invite-respond:${ip}`, 10, 60 * 1000);
+  if (!limit.allowed) return rateLimitResponse(limit);
 
   if (typeof confirmed !== "boolean") {
     return NextResponse.json(
@@ -100,11 +108,6 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Verifica autorização por IP ────────────────────────────────────────────
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-    req.headers.get("x-real-ip") ??
-    "unknown";
-
   const firstAccess = guest.accesses[0];
 
   if (!firstAccess) {

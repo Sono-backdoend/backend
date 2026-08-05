@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { signAdminToken } from "@/lib/jwt";
+import { getClientIp } from "@/lib/get-client-ip";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import bcrypt from "bcryptjs";
+
+const WINDOW_MS = 15 * 60 * 1000;
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -13,6 +17,15 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+
+  // Limite por IP (evita um IP testar várias contas) e por e-mail (evita
+  // força bruta distribuída entre vários IPs contra uma única conta).
+  const ip = getClientIp(req);
+  const ipLimit = checkRateLimit(`login:ip:${ip}`, 20, WINDOW_MS);
+  if (!ipLimit.allowed) return rateLimitResponse(ipLimit);
+
+  const emailLimit = checkRateLimit(`login:email:${email}`, 5, WINDOW_MS);
+  if (!emailLimit.allowed) return rateLimitResponse(emailLimit);
 
   const admin = await prisma.admin.findUnique({ where: { email } });
   if (!admin) {

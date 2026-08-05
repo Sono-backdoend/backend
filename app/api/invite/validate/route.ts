@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isWithinConfirmationWindow } from "@/lib/confirmation-window";
+import { getClientIp } from "@/lib/get-client-ip";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -13,6 +15,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Código obrigatório" }, { status: 400 });
   }
 
+  // Verificado antes de consultar o banco — o código tem só 32 bits de
+  // espaço de busca, então precisa de um limite para dificultar enumeração.
+  const ip = getClientIp(req);
+  const limit = checkRateLimit(`invite-validate:${ip}`, 30, 60 * 1000);
+  if (!limit.allowed) return rateLimitResponse(limit);
+
   const guest = await prisma.guest.findUnique({
     where: { code },
     include: {
@@ -23,11 +31,6 @@ export async function POST(req: NextRequest) {
   if (!guest) {
     return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
   }
-
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-    req.headers.get("x-real-ip") ??
-    "unknown";
 
   const userAgent = req.headers.get("user-agent") ?? undefined;
 
