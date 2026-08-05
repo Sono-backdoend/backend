@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomBytes } from "crypto";
+import { parseConfirmationWindow } from "@/lib/confirmation-window";
 
 async function generateUniqueCode(existingCodes: Set<string>): Promise<string> {
   let code: string;
@@ -21,46 +22,67 @@ function parseNamesFromText(text: string): string[] {
     .filter(Boolean);
 }
 
-async function extractNames(req: NextRequest): Promise<string[]> {
+type ImportPayload = {
+  names: string[];
+  confirmationStartsAt: unknown;
+  confirmationEndsAt: unknown;
+};
+
+// Janela de confirmação compartilhada, aplicada a todos os convidados do lote
+// — o formato de import (nomes em texto livre) não tem estrutura por linha.
+async function extractImportPayload(req: NextRequest): Promise<ImportPayload> {
   const contentType = req.headers.get("content-type") ?? "";
 
   // multipart/form-data — arquivo .csv enviado pelo Insomnia
   if (contentType.includes("multipart/form-data")) {
     const formData = await req.formData();
     const file = formData.get("file");
+    const confirmationStartsAt = formData.get("confirmationStartsAt");
+    const confirmationEndsAt = formData.get("confirmationEndsAt");
 
     if (file && typeof file !== "string") {
       const text = await (file as File).text();
-      return parseNamesFromText(text);
+      return { names: parseNamesFromText(text), confirmationStartsAt, confirmationEndsAt };
     }
 
     // campo de texto simples no form
     const names = formData.get("names");
-    if (typeof names === "string") return parseNamesFromText(names);
+    if (typeof names === "string") {
+      return { names: parseNamesFromText(names), confirmationStartsAt, confirmationEndsAt };
+    }
 
-    return [];
+    return { names: [], confirmationStartsAt, confirmationEndsAt };
   }
 
   // application/json
   const body = await req.json();
-  if (!body || typeof body !== "object") return [];
+  if (!body || typeof body !== "object") {
+    return { names: [], confirmationStartsAt: null, confirmationEndsAt: null };
+  }
+
+  const { confirmationStartsAt, confirmationEndsAt } = body as {
+    confirmationStartsAt?: unknown;
+    confirmationEndsAt?: unknown;
+  };
 
   if (Array.isArray((body as { names?: unknown }).names)) {
-    return (body as { names: unknown[] }).names
+    const names = (body as { names: unknown[] }).names
       .map((n) => (typeof n === "string" ? n.trim() : ""))
       .filter(Boolean);
+    return { names, confirmationStartsAt, confirmationEndsAt };
   }
 
   if (typeof (body as { csv?: unknown }).csv === "string") {
-    return parseNamesFromText((body as { csv: string }).csv);
+    const names = parseNamesFromText((body as { csv: string }).csv);
+    return { names, confirmationStartsAt, confirmationEndsAt };
   }
 
-  return [];
+  return { names: [], confirmationStartsAt, confirmationEndsAt };
 }
 
 // POST /api/admin/guests/import — cria múltiplos convidados de uma vez
 export async function POST(req: NextRequest) {
-  const names = await extractNames(req);
+  const { names, confirmationStartsAt, confirmationEndsAt } = await extractImportPayload(req);
 
   if (names.length === 0) {
     return NextResponse.json(
@@ -72,6 +94,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const parsedWindow = parseConfirmationWindow(confirmationStartsAt, confirmationEndsAt);
+  if ("error" in parsedWindow) {
+    return NextResponse.json({ error: parsedWindow.error }, { status: 400 });
+  }
+
   const usedCodes = new Set<string>();
   const created = [];
   const errors: { name: string; reason: string }[] = [];
@@ -80,8 +107,15 @@ export async function POST(req: NextRequest) {
     try {
       const code = await generateUniqueCode(usedCodes);
       const guest = await prisma.guest.create({
-        data: { name, code },
-        select: { id: true, name: true, code: true, createdAt: true },
+        data: { name, code, ...parsedWindow.data },
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          confirmationStartsAt: true,
+          confirmationEndsAt: true,
+          createdAt: true,
+        },
       });
       created.push(guest);
     } catch {

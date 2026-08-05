@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isWithinConfirmationWindow } from "@/lib/confirmation-window";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -34,6 +35,10 @@ export async function POST(req: NextRequest) {
     data: { guestId: guest.id, ip, userAgent, fingerprint: fingerprint ?? null },
   });
 
+  const canRespondNow =
+    guest.response === null &&
+    isWithinConfirmationWindow(new Date(), guest.confirmationStartsAt, guest.confirmationEndsAt);
+
   return NextResponse.json({
     guest: {
       id: guest.id,
@@ -48,5 +53,8 @@ export async function POST(req: NextRequest) {
         plusOnePhone: guest.response.plusOnePhone,
       }
       : null,
+    confirmationStartsAt: guest.confirmationStartsAt,
+    confirmationEndsAt: guest.confirmationEndsAt,
+    canRespondNow,
   });
 }
