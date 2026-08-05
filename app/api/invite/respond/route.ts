@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import {
+  getConfirmationWindowMessage,
+  isWithinConfirmationWindow,
+} from "@/lib/confirmation-window";
 
 // POST /api/invite/respond
 // Body: {
@@ -77,6 +81,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "Este convite já foi respondido" },
       { status: 409 }
+    );
+  }
+
+  // ── Verifica janela de confirmação ─────────────────────────────────────────
+  const now = new Date();
+  if (!isWithinConfirmationWindow(now, guest.confirmationStartsAt, guest.confirmationEndsAt)) {
+    return NextResponse.json(
+      {
+        error: getConfirmationWindowMessage(
+          now,
+          guest.confirmationStartsAt,
+          guest.confirmationEndsAt
+        ),
+      },
+      { status: 403 }
     );
   }
 

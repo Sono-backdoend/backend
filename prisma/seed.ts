@@ -1,14 +1,16 @@
-import "dotenv/config";
+import { loadEnvWithLocalOverride } from "../lib/load-env";
 import { PrismaClient } from "../app/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
+
+loadEnvWithLocalOverride();
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const email = process.env.ADMIN_EMAIL ?? "admin@arraia.com";
-  const password = process.env.ADMIN_PASSWORD ?? "admin123";
+  const email = process.env.ADMIN_EMAIL ?? "admin@projeto.com";
+  const password = process.env.ADMIN_PASSWORD ?? "12345";
   const name = process.env.ADMIN_NAME ?? "Admin";
 
   const exists = await prisma.admin.findUnique({ where: { email } });

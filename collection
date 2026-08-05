@@ -1,0 +1,673 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: Arraia Macabro API
+meta:
+  id: wrk_6de4bb391a424743bbd4909308ff4d68
+  created: 1780161137950
+  modified: 1780161137950
+  description: ""
+collection:
+  - name: 🔐 Auth
+    meta:
+      id: fld_ceb5ca399b6b413f87ba934d8498d1a9
+      created: 1780161137953
+      modified: 1780700382670
+      sortKey: -1780161137953
+      description: ""
+    children:
+      - url: "{{ base_url }}/api/admin/login"
+        name: Login admin
+        meta:
+          id: req_4ebff17432c74d40afe9afd5116faf4c
+          created: 1780161137962
+          modified: 1785503619421
+          isPrivate: false
+          description: >-
+            Autentica um admin e retorna o JWT.
+
+            Copie o token retornado e cole na variável de ambiente
+            `admin_token`.
+          sortKey: -1780161137962
+        method: POST
+        body:
+          mimeType: application/json
+          text: '{ "email": "admin@arraia.com", "password": "310763" }'
+        headers:
+          - name: Content-Type
+            value: application/json
+        scripts:
+          afterResponse: |
+            let body;
+
+            try {
+              body = insomnia.response.json();
+            } catch {
+              return;
+            }
+
+            if (body?.token) {
+              insomnia.environment.set("admin_token", body.token);
+            }
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: 👤 Admin — Admins
+    meta:
+      id: fld_2bd26ec4b3284a7299d349dcbe3a6295
+      created: 1780161137957
+      modified: 1780161137957
+      sortKey: -1780161137957
+      description: ""
+    children:
+      - url: "{{ base_url }}/api/admin/admins"
+        name: Listar admins
+        meta:
+          id: req_b813dee6cb614275b9895ad6cdb3f02c
+          created: 1780161137965
+          modified: 1780161267120
+          isPrivate: false
+          description: Retorna todos os admins cadastrados.
+          sortKey: -1780161137965
+        method: GET
+        headers:
+          - name: Authorization
+            value: Bearer {{ admin_token }}
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ base_url }}/api/admin/admins"
+        name: Criar admin
+        meta:
+          id: req_0b1fc6b481294baa8f8b312c36a55a9d
+          created: 1780161137967
+          modified: 1780161137967
+          isPrivate: false
+          description: Cria um novo admin. Requer autenticação.
+          sortKey: -1780161137967
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "name": "Novo Admin",
+              "email": "novo@example.com",
+              "password": "senha123"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: Bearer {{ admin_token }}
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ base_url }}/api/admin/admins/:id"
+        name: Atualizar admin
+        meta:
+          id: req_ca2f67f2b25249bea9d2fbfca1ba4b05
+          created: 1780161137969
+          modified: 1780161137969
+          isPrivate: false
+          description: Atualiza nome, email e/ou senha de um admin. Todos os campos são
+            opcionais.
+          sortKey: -1780161137969
+        method: PATCH
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "name": "Nome Atualizado",
+              "email": "atualizado@example.com",
+              "password": "novasenha123"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: Bearer {{ admin_token }}
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+        pathParameters:
+          - name: id
+            value: ID_DO_ADMIN
+      - url: "{{ base_url }}/api/admin/admins/:id"
+        name: Deletar admin
+        meta:
+          id: req_dc27ff41694c4e2f9a42dfb884398927
+          created: 1780161137970
+          modified: 1780161137970
+          isPrivate: false
+          description: Remove um admin. Não permite remover o último admin cadastrado.
+          sortKey: -1780161137970
+        method: DELETE
+        headers:
+          - name: Authorization
+            value: Bearer {{ admin_token }}
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+        pathParameters:
+          - name: id
+            value: ID_DO_ADMIN
+  - name: 🎉 Admin — Convidados
+    meta:
+      id: fld_ddec50a001a1416c900c5d8900748c98
+      created: 1780161137958
+      modified: 1780161137958
+      sortKey: -1780161137958
+      description: ""
+    children:
+      - url: "{{ base_url }}/api/admin/guests"
+        name: Listar convidados
+        meta:
+          id: req_f22c6ba52a284f93a67a6c5fe62da0cc
+          created: 1780161137972
+          modified: 1785503508396
+          isPrivate: false
+          description: Retorna todos os convidados com contagem de acessos e resposta (se
+            houver).
+          sortKey: -1780161137972
+        method: GET
+        headers:
+          - name: Authorization
+            value: Bearer {{ admin_token }}
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ base_url }}/api/admin/guests"
+        name: Criar convidado
+        meta:
+          id: req_2885ca6eb41d4b0ca76c2cc65c9b90e0
+          created: 1780161137974
+          modified: 1785778976003
+          isPrivate: false
+          description: |-
+            Cria um novo convidado. O código único é gerado automaticamente.
+            Retorna: id, name, code, confirmationStartsAt, confirmationEndsAt, createdAt.
+
+            confirmationStartsAt/confirmationEndsAt são opcionais — se omitidos,
+            o convidado fica sem restrição de prazo para confirmar.
+          sortKey: -1780161137974
+        method: POST
+        body:
+          mimeType: application/json
+          text: |+
+            {
+              "name": "Kauã Werle"
+            }
+
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: Bearer {{ admin_token }}
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ base_url }}/api/admin/guests"
+        name: Criar convidado com janela de confirmação
+        meta:
+          id: req_c83d3f7121a25b3e21ecb2ab9ff7ac2a
+          created: 1785778976003
+          modified: 1785778976003
+          isPrivate: false
+          description: |-
+            Cria um convidado que só pode confirmar presença dentro de uma janela
+            de data/hora específica (independente da data do evento).
+
+            ✅ 201 — convidado criado, retorna a janela definida.
+            ⛔ 400 — confirmationStartsAt e confirmationEndsAt devem ser enviados
+            juntos, com início anterior ao fim.
+          sortKey: -1780161137973.5
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "name": "Kauã Werle",
+              "confirmationStartsAt": "2026-08-04T14:00:00-03:00",
+              "confirmationEndsAt": "2026-08-05T14:00:00-03:00"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: Bearer {{ admin_token }}
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ base_url }}/api/admin/guests/cmpsm3vpk00002g96ci72mfi3"
+        name: Detalhe do convidado
+        meta:
+          id: req_17fefae957204d1183d7732d0272e064
+          created: 1780161137975
+          modified: 1780669900281
+          isPrivate: false
+          description: Retorna todos os dados do convidado, incluindo histórico completo
+            de acessos (ip, userAgent, fingerprint, timestamp) e a resposta
+            dada.
+          sortKey: -1780161137975
+        method: GET
+        headers:
+          - name: Authorization
+            value: Bearer {{ admin_token }}
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ base_url }}/api/admin/guests/:id"
+        name: Atualizar convidado
+        meta:
+          id: req_ef94257616c34ae28c399ec9de318386
+          created: 1780161137978
+          modified: 1785778976003
+          isPrivate: false
+          description: |-
+            Atualização parcial — envie apenas os campos que quer alterar.
+            O código é imutável pois pode já ter sido enviado.
+
+            name é independente da janela de confirmação; confirmationStartsAt e
+            confirmationEndsAt devem ser enviados sempre juntos (ambos, ou nenhum).
+          sortKey: -1780161137978
+        method: PATCH
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "name": "Maria Souza"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: Bearer {{ admin_token }}
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+        pathParameters:
+          - name: id
+            value: ID_DO_CONVIDADO
+      - url: "{{ base_url }}/api/admin/guests/:id"
+        name: Atualizar janela de confirmação
+        meta:
+          id: req_026d41e29aeff0dc708700631ae5f3f0
+          created: 1785778976003
+          modified: 1785778976003
+          isPrivate: false
+          description: |-
+            Define ou altera a janela de confirmação de um convidado já existente,
+            sem precisar reenviar o name.
+
+            Para remover a janela (deixar sem restrição), envie os dois campos
+            como null: { "confirmationStartsAt": null, "confirmationEndsAt": null }.
+
+            ⛔ 400 — se enviar só um dos dois campos.
+          sortKey: -1780161137977.5
+        method: PATCH
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "confirmationStartsAt": "2026-08-04T14:00:00-03:00",
+              "confirmationEndsAt": "2026-08-05T14:00:00-03:00"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: Authorization
+            value: Bearer {{ admin_token }}
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+        pathParameters:
+          - name: id
+            value: ID_DO_CONVIDADO
+      - url: "{{ base_url }}/api/admin/guests/:id"
+        name: Deletar convidado
+        meta:
+          id: req_5f60d5f445d84b2fb5f7db5e53cf0dfa
+          created: 1780161137980
+          modified: 1780161137980
+          isPrivate: false
+          description: >-
+            Remove o convidado e todos os seus dados relacionados (acessos +
+            resposta).
+
+            Retorna 204 sem body.
+          sortKey: -1780161137980
+        method: DELETE
+        headers:
+          - name: Authorization
+            value: Bearer {{ admin_token }}
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+        pathParameters:
+          - name: id
+            value: ID_DO_CONVIDADO
+      - url: "{{ _.base_url }}/api/admin/guests/import"
+        name: Importar convidados
+        meta:
+          id: req_ad601e551761453ebe2e73353e3fc881
+          created: 1780699866441
+          modified: 1785778976003
+          isPrivate: false
+          description: |-
+            Cria vários convidados a partir de um CSV (nomes separados por vírgula/quebra
+            de linha). confirmationStartsAt/confirmationEndsAt são opcionais e, se enviados,
+            aplicam a MESMA janela de confirmação a todos os convidados criados nesse lote
+            (desabilite os dois campos para importar sem restrição de prazo).
+          sortKey: -1780161137974.5
+        method: POST
+        body:
+          mimeType: multipart/form-data
+          params:
+            - name: file
+              value: ""
+              description: ""
+              disabled: false
+              fileName: C:\Users\kauaviado\Downloads\lista.csv
+              type: file
+            - name: confirmationStartsAt
+              value: "2026-08-04T14:00:00-03:00"
+              description: Opcional — janela de confirmação aplicada a todo o lote
+              disabled: true
+            - name: confirmationEndsAt
+              value: "2026-08-05T14:00:00-03:00"
+              description: Opcional — janela de confirmação aplicada a todo o lote
+              disabled: true
+        headers:
+          - name: Content-Type
+            value: multipart/form-data
+          - name: Authorization
+            value: Bearer {{ admin_token }}
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: 📩 Invite (público)
+    meta:
+      id: fld_918e0a68e28341ce90b527812fc3d097
+      created: 1780161137960
+      modified: 1780161137960
+      sortKey: -1780161137960
+      description: ""
+    children:
+      - url: "{{ base_url }}/api/invite/validate"
+        name: Validar convite (1º acesso)
+        meta:
+          id: req_6189b4afaad540cc958e6d9c80a0c507
+          created: 1780161137982
+          modified: 1785778976003
+          isPrivate: false
+          description: |-
+            Valida o código do convite e registra o acesso.
+
+            ✅ 200 — código válido, retorna nome do convidado, se já respondeu,
+            a janela de confirmação (confirmationStartsAt/confirmationEndsAt, se
+            houver) e canRespondNow (true se ainda não respondeu e está dentro
+            da janela — ou se o convidado não tem janela definida).
+            ⛔ 403 — IP diferente do primeiro acesso (convite de outra pessoa).
+            ❌ 404 — código não encontrado.
+          sortKey: -1780161137982
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "code": "c9e6197d",
+              "fingerprint": "fp_abc123"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ base_url }}/api/invite/validate"
+        name: Validar convite (IP bloqueado)
+        meta:
+          id: req_a48ee6ecbc9341c297b4353e5f38dec4
+          created: 1780161137983
+          modified: 1780161137983
+          isPrivate: false
+          description: |-
+            Simula um acesso de IP diferente do primeiro.
+            Espera 403 — acesso negado.
+          sortKey: -1780161137983
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "code": "a3f9c21b",
+              "fingerprint": "fp_outro_dispositivo"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: X-Forwarded-For
+            value: 1.2.3.4
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ base_url }}/api/invite/respond"
+        name: Responder convite — confirmado + acompanhante
+        meta:
+          id: req_859893296f5743809f56094bdb7177c6
+          created: 1780161137985
+          modified: 1785778976003
+          isPrivate: false
+          description: |-
+            Confirma presença com acompanhante.
+            ✅ 201 — resposta registrada.
+            ⚠️ 409 — já respondeu antes.
+            ⛔ 403 — fora da janela de confirmação (ainda não abriu ou já encerrou).
+            ⛔ 403 — IP diferente do primeiro acesso.
+          sortKey: -1780161137985
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "code": "a3f9c21b",
+              "confirmed": true,
+              "plusOne": true,
+              "plusOneName": "Carlos Souza",
+              "plusOnePhone": "11999999999"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ base_url }}/api/invite/respond"
+        name: Responder convite — recusado
+        meta:
+          id: req_44d2f90e2c4249c9bb95d4b402baad78
+          created: 1780161137987
+          modified: 1780161137987
+          isPrivate: false
+          description: Recusa o convite sem acompanhante.
+          sortKey: -1780161137987
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "code": "a3f9c21b",
+              "confirmed": false,
+              "plusOne": false
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ base_url }}/api/invite/respond"
+        name: Responder convite — confirmado sem acompanhante
+        meta:
+          id: req_359e705a08d744c3b5d9f0bbbb817ad5
+          created: 1780161137988
+          modified: 1780161137988
+          isPrivate: false
+          description: Confirma presença sem acompanhante.
+          sortKey: -1780161137988
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "code": "a3f9c21b",
+              "confirmed": true,
+              "plusOne": false
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ base_url }}/api/invite/respond"
+        name: Responder convite — fora da janela de confirmação
+        meta:
+          id: req_5c7b773c846c12d83ad3157f921ad822
+          created: 1785778976003
+          modified: 1785778976003
+          isPrivate: false
+          description: |-
+            Use com um código criado via "Criar convidado com janela de confirmação"
+            (ou "Atualizar janela de confirmação"), tentando responder antes do
+            confirmationStartsAt ou depois do confirmationEndsAt.
+
+            ⛔ 403 — mensagem indica se a janela ainda não abriu ou se já encerrou.
+          sortKey: -1780161137987.5
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "code": "SUBSTITUA_PELO_CODE_COM_JANELA",
+              "confirmed": true,
+              "plusOne": false
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_6f45ac67535d64870d4136f6ef88ecb4b235c0a9
+    created: 1780161138181
+    modified: 1780700382662
+environments:
+  name: Base Environment
+  meta:
+    id: env_6f45ac67535d64870d4136f6ef88ecb4b235c0a9
+    created: 1780161137993
+    modified: 1785503543422
+    isPrivate: false
+  data:
+    base_url: http://localhost:3001
+    admin_token: eyJhbGciOiJIUzI1NiJ9.eyJpZCI6ImNtcTFoamt4bDAwMDBhYzk2dXRheWFzM3oiLCJlbWFpbCI6ImFkbWluQGFycmFpYS5jb20iLCJuYW1lIjoiQWRtaW4iLCJleHAiOjE3ODEzMDUyMDMsImlhdCI6MTc4MDcwMDQwM30.P-sXiI9vqVHD2MFAtYpbGikP7zSispVIco3hukTB4AA
