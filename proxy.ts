@@ -24,8 +24,9 @@ export default async function proxy(req: NextRequest) {
     return withCors(req, new NextResponse(null, { status: 204 }));
   }
 
+  const isAdminRoute = req.nextUrl.pathname.startsWith("/api/admin");
   const isLoginRoute = req.nextUrl.pathname === "/api/admin/login";
-  if (isLoginRoute) return withCors(req, NextResponse.next());
+  if (!isAdminRoute || isLoginRoute) return withCors(req, NextResponse.next());
 
   const authHeader = req.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) {
@@ -41,5 +42,5 @@ export default async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/admin/:path*"],
+  matcher: ["/api/:path*"],
 };
