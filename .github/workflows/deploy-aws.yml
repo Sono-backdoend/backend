@@ -1,0 +1,72 @@
+name: Deploy Back-end AWS
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Build and deploy backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and Push Docker image
+        env:
+          ECR_REGISTRY: 112289584007.dkr.ecr.us-east-2.amazonaws.com
+          ECR_REPOSITORY: sono-backend
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+
+            AWS_REGION="us-east-2"
+            AWS_ACCOUNT_ID="112289584007"
+            ECR_REPOSITORY="sono-backend"
+            IMAGE_URI="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest"
+
+            aws ecr get-login-password --region "$AWS_REGION" |
+              sudo docker login \
+                --username AWS \
+                --password-stdin \
+                "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+
+            sudo docker pull "$IMAGE_URI"
+
+            sudo docker rm -f sono-backend 2>/dev/null || true
+
+            sudo docker run -d \
+              --name sono-backend \
+              --network sono-network \
+              --env-file /home/ubuntu/backend.env \
+              -p 3001:3001 \
+              --restart unless-stopped \
+              "$IMAGE_URI"
+
+            sudo docker exec sono-backend npx prisma migrate deploy
+
+            sudo docker image prune -f
+
+            sudo docker ps
