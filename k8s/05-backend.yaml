@@ -1,0 +1,99 @@
+---
+# Deployment do backend (Next.js API, porta 3001).
+#
+# 3 réplicas: atende o requisito de "pelo menos 2 réplicas" e permite
+# demonstrar balanceamento de carga - a rota /api/health devolve o
+# hostname do Pod que respondeu, então chamadas repetidas alternam nomes.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sono-backend
+  labels:
+    app: sono-backend
+    app.kubernetes.io/part-of: sono
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sono-backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: sono-backend
+    spec:
+      initContainers:
+        # Nenhum Pod do backend sobe antes de o banco responder.
+        - name: wait-for-postgres
+          image: postgres:17-alpine
+          command:
+            - sh
+            - -c
+            - until pg_isready -h postgres -p 5432 -U "$POSTGRES_USER"; do sleep 2; done
+          envFrom:
+            - secretRef:
+                name: sono-secrets
+
+      containers:
+        - name: backend
+          image: sono-backend:latest
+          imagePullPolicy: Never      # usa a imagem local carregada no Minikube
+          ports:
+            - name: http
+              containerPort: 3001
+          envFrom:
+            - configMapRef:
+                name: sono-config
+            - secretRef:
+                name: sono-secrets
+
+          # readiness: o Service só manda tráfego para o Pod depois que ele passa
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # liveness: se travar, o Kubernetes reinicia o container
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 768Mi
+
+---
+# Service do backend: ClusterIP.
+#
+# O nome "sono-backend" e a porta 3001 NÃO são livres: o next.config.ts do
+# frontend tem um rewrite fixo para http://sono-backend:3001. Renomear este
+# Service quebra a comunicação entre front e back.
+apiVersion: v1
+kind: Service
+metadata:
+  name: sono-backend
+  labels:
+    app: sono-backend
+    app.kubernetes.io/part-of: sono
+spec:
+  type: ClusterIP
+  selector:
+    app: sono-backend
+  ports:
+    - name: http
+      port: 3001
+      targetPort: 3001

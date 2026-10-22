@@ -1,0 +1,21 @@
+---
+# ConfigMap: configuração NÃO sensível da aplicação.
+# Vai para variáveis de ambiente dos Pods do backend.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sono-config
+  labels:
+    app.kubernetes.io/part-of: sono
+data:
+  NODE_ENV: "production"
+
+  # Origens aceitas pelo CORS do backend (lidas em proxy.ts).
+  # Como o frontend chama o backend pelo rewrite do Next (server-side),
+  # o CORS quase não é exercitado, mas deixamos configurado.
+  FRONTEND_URL: "http://localhost:30080,http://127.0.0.1:30080"
+
+  # Host e porta do Postgres dentro do cluster.
+  # "postgres" é o nome do Service - é assim que o DNS interno resolve.
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"

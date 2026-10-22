@@ -1,0 +1,70 @@
+---
+# Job de migração do banco.
+#
+# Por que um Job e não um comando dentro do backend:
+#  - O backend tem 3 réplicas. Se cada Pod rodasse as migrations na subida,
+#    três processos tentariam alterar o schema ao mesmo tempo.
+#  - Um Job roda UMA vez, até terminar com sucesso, e só então os Pods sobem
+#    em um banco já no formato certo.
+#
+# Para rodar de novo (um Job concluído não aceita "apply" por cima):
+#   kubectl delete job sono-migrate --ignore-not-found
+#   kubectl apply -f k8s/04-migrate-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sono-migrate
+  labels:
+    app: sono-migrate
+    app.kubernetes.io/part-of: sono
+spec:
+  backoffLimit: 5
+  template:
+    metadata:
+      labels:
+        app: sono-migrate
+    spec:
+      restartPolicy: OnFailure
+
+      initContainers:
+        # Espera o Postgres aceitar conexões antes de tentar migrar.
+        - name: wait-for-postgres
+          image: postgres:17-alpine
+          command:
+            - sh
+            - -c
+            - |
+              echo "Aguardando o Postgres..."
+              until pg_isready -h postgres -p 5432 -U "$POSTGRES_USER"; do
+                sleep 2
+              done
+              echo "Postgres pronto."
+          envFrom:
+            - secretRef:
+                name: sono-secrets
+
+      containers:
+        - name: migrate
+          image: sono-backend:latest
+          imagePullPolicy: Never      # imagem carregada com "minikube image load"
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              echo "== prisma migrate deploy =="
+              npx prisma migrate deploy
+              echo "== seed =="
+              npx tsx prisma/seed.ts || echo "AVISO: seed nao concluiu (pode ja ter rodado antes)"
+              echo "== fim =="
+          envFrom:
+            - configMapRef:
+                name: sono-config
+            - secretRef:
+                name: sono-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 768Mi

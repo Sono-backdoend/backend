@@ -1,0 +1,86 @@
+---
+# Deployment do frontend (Next.js standalone, porta 3000).
+#
+# 2 réplicas, também com /api/health devolvendo o hostname do Pod.
+#
+# IMPORTANTE: este Deployment NÃO recebe NEXT_PUBLIC_BACKEND_URL.
+# Isso é intencional, não esquecimento. Veja o README: com a variável vazia,
+# o frontend chama "/api/..." no próprio domínio e o servidor Next repassa
+# para http://sono-backend:3001 pelo rewrite. Se a variável fosse preenchida,
+# o NAVEGADOR tentaria resolver "sono-backend", que só existe dentro do
+# cluster, e a aplicação quebraria.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sono-frontend
+  labels:
+    app: sono-frontend
+    app.kubernetes.io/part-of: sono
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sono-frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: sono-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: sono-frontend:latest
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              memory: 512Mi
+
+---
+# Service do frontend: NodePort.
+#
+# NodePort abre uma porta no nó do cluster, acessível de fora.
+# É o único componente exposto - backend e banco ficam em ClusterIP.
+# nodePort fixo em 30080 para o endereço não mudar a cada "minikube start".
+apiVersion: v1
+kind: Service
+metadata:
+  name: sono-frontend
+  labels:
+    app: sono-frontend
+    app.kubernetes.io/part-of: sono
+spec:
+  type: NodePort
+  selector:
+    app: sono-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+      nodePort: 30080
