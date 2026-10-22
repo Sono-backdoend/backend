@@ -66,7 +66,7 @@ spec:
 # Service do frontend: NodePort.
 #
 # NodePort abre uma porta no nó do cluster, acessível de fora.
-# É o único componente exposto — backend e banco ficam em ClusterIP.
+# É o único componente exposto - backend e banco ficam em ClusterIP.
 # nodePort fixo em 30080 para o endereço não mudar a cada "minikube start".
 apiVersion: v1
 kind: Service

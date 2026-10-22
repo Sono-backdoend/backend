@@ -16,6 +16,6 @@ data:
   FRONTEND_URL: "http://localhost:30080,http://127.0.0.1:30080"
 
   # Host e porta do Postgres dentro do cluster.
-  # "postgres" é o nome do Service — é assim que o DNS interno resolve.
+  # "postgres" é o nome do Service - é assim que o DNS interno resolve.
   POSTGRES_HOST: "postgres"
   POSTGRES_PORT: "5432"

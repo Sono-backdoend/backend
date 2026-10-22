@@ -29,12 +29,12 @@ Service sono-frontend (NodePort 30080)
 
 | Recurso | Nome | Tipo | Função |
 |---|---|---|---|
-| ConfigMap | `sono-config` | — | Configuração não sensível do backend |
+| ConfigMap | `sono-config` | - | Configuração não sensível do backend |
 | Secret | `sono-secrets` | Opaque | Credenciais do banco, AUTH_SECRET e admin |
 | PersistentVolumeClaim | `postgres-data` | RWO 1Gi | Disco do PostgreSQL |
 | Deployment | `postgres` | 1 réplica | Banco de dados |
 | Service | `postgres` | ClusterIP | Acesso interno ao banco |
-| Job | `sono-migrate` | — | Roda as migrations do Prisma uma única vez |
+| Job | `sono-migrate` | - | Roda as migrations do Prisma uma única vez |
 | Deployment | `sono-backend` | 3 réplicas | API |
 | Service | `sono-backend` | ClusterIP | Balanceamento entre os pods da API |
 | Deployment | `sono-frontend` | 2 réplicas | Interface web |
@@ -89,7 +89,7 @@ minikube image ls | grep sono
 ```
 
 Os Deployments usam `imagePullPolicy: Never`, então o cluster nunca tenta
-baixar essas imagens da internet — usa só o que foi carregado.
+baixar essas imagens da internet - usa só o que foi carregado.
 
 **Toda vez que reconstruir uma imagem, carregue de novo.**
 
@@ -178,7 +178,7 @@ pod do backend espera o Postgres responder antes de subir.
 **Por que o frontend não recebe `NEXT_PUBLIC_BACKEND_URL`.** No código,
 `const apiBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? ""`. Vazia, o
 navegador chama `/api/...` no próprio domínio do frontend, e o servidor Next
-repassa para `http://sono-backend:3001` pelo rewrite — comunicação interna
+repassa para `http://sono-backend:3001` pelo rewrite - comunicação interna
 entre pods. Se a variável fosse preenchida com o nome do Service, o
 **navegador** tentaria resolver `sono-backend`, que só existe no DNS do
 cluster, e a aplicação quebraria.

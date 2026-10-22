@@ -2,7 +2,7 @@
 # Deployment do backend (Next.js API, porta 3001).
 #
 # 3 réplicas: atende o requisito de "pelo menos 2 réplicas" e permite
-# demonstrar balanceamento de carga — a rota /api/health devolve o
+# demonstrar balanceamento de carga - a rota /api/health devolve o
 # hostname do Pod que respondeu, então chamadas repetidas alternam nomes.
 apiVersion: apps/v1
 kind: Deployment

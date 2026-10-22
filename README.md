@@ -1,6 +1,6 @@
 # Projeto X Backend
 
-> **Entrega atual — Kubernetes:** a aplicação roda em um cluster Minikube.
+> **Entrega atual - Kubernetes:** a aplicação roda em um cluster Minikube.
 > O passo a passo completo de implantação está em [`k8s/README.md`](k8s/README.md).
 > Repositório do frontend: https://github.com/Sono-backdoend/frontend
 
